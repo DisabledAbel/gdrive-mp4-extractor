@@ -210,6 +210,8 @@
 
     let selectedFormat = 'vlcWeb';
     let currentOutput = '';
+    let resolvedMp4Url = '';
+    let resolveCounter = 0;
 
     const patterns = [
       /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/i,
@@ -250,6 +252,24 @@
       };
     }
 
+    async function resolveMp4Url(fileId) {
+      const nextCounter = resolveCounter + 1;
+      resolveCounter = nextCounter;
+      setStatus('Checking Drive link and preparing MP4 URL...');
+
+      const query = encodeURIComponent(fileId);
+      const response = await fetch(`/api/resolve?input=${query}`);
+      const data = await response.json();
+
+      if (resolveCounter !== nextCounter) return;
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not resolve this Drive URL.');
+      }
+
+      resolvedMp4Url = data.mp4Url || '';
+    }
+
     function updateActiveChip(nextFormat) {
       selectedFormat = nextFormat;
       chipEls.forEach((chip) => {
@@ -259,13 +279,14 @@
       });
     }
 
-    function render() {
+    async function render() {
       const { fileId, error } = extractFileId(inputEl.value);
 
       hintEl.textContent = hintsByFormat[selectedFormat];
 
       if (error) {
         currentOutput = '';
+        resolvedMp4Url = '';
         outputEl.textContent = 'No output yet.';
         setStatus(error, 'error');
         copyBtn.disabled = true;
@@ -273,11 +294,23 @@
         return;
       }
 
-      const links = buildLinks(fileId);
+      try {
+        await resolveMp4Url(fileId);
+      } catch (err) {
+        currentOutput = '';
+        resolvedMp4Url = '';
+        outputEl.textContent = 'No output yet.';
+        setStatus(err.message, 'error');
+        copyBtn.disabled = true;
+        openBtn.disabled = true;
+        return;
+      }
+
+      const links = buildLinks();
       currentOutput = links[selectedFormat] || '';
 
       outputEl.textContent = currentOutput;
-      setStatus('');
+      setStatus('✓ MP4 URL is ready.', 'ok');
       copyBtn.disabled = false;
       openBtn.disabled = false;
     }
