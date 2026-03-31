@@ -5,9 +5,8 @@ A tiny web app that converts a Google Drive share URL (or file ID) into a hosted
 ## How it works
 
 1. Paste a Google Drive share URL (or raw file ID).
-2. The app calls `/api/resolve` to attempt validation before generating the MP4 URL.
-3. It then generates a Vercel-hosted URL in the format `/mp4/<FILE_ID>.mp4` (even if probe validation cannot complete).
-4. Opening that URL calls a serverless function which fetches the Drive file and streams it back as video.
+2. The app generates a Vercel-hosted URL in the format `/mp4/<FILE_ID>.mp4`.
+3. Opening that URL calls a serverless function which fetches the Drive file and streams it back as video.
 
 This gives you a stable app URL that behaves like an MP4 endpoint for VLC/Infuse/nPlayer.
 
