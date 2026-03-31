@@ -169,7 +169,7 @@
 <body>
   <main class="app">
     <h1>Google Drive MP4 Link Extractor</h1>
-    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to validate it server-side and generate a working hosted MP4 URL.</p>
+    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to generate a hosted MP4 URL that works across players.</p>
 
     <label for="input">Google Drive URL or File ID</label>
     <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
@@ -202,7 +202,7 @@
     const chipEls = [...document.querySelectorAll('.chip')];
 
     const hintsByFormat = {
-      vlcWeb: 'VLC desktop: uses hosted /mp4/... when available, with a direct Drive fallback if needed.',
+      vlcWeb: 'VLC desktop: uses the hosted /mp4/... URL that streams from Google Drive through this app.',
       vlcDeep: 'vlc:// deep link: launches VLC directly with the hosted MP4 URL where supported.',
       infuse: 'Infuse deep link: opens Infuse with the hosted MP4 URL from this app.',
       nplayer: 'nPlayer deep link: opens nPlayer with the hosted MP4 URL from this app.'
@@ -211,7 +211,6 @@
     let selectedFormat = 'vlcWeb';
     let currentOutput = '';
     let resolvedMp4Url = '';
-    let resolveWarning = '';
     let resolveCounter = 0;
 
     const patterns = [
@@ -243,25 +242,13 @@
       return { error: 'Could not find a valid Google Drive file ID in that input.' };
     }
 
-    function buildDirectDriveMp4Url(fileId) {
-      return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
-    }
-
-    function buildLinks() {
-      if (!resolvedMp4Url) {
-        return {
-          vlcWeb: '',
-          vlcDeep: '',
-          infuse: '',
-          nplayer: ''
-        };
-      }
-
+    function buildLinks(fileId) {
+      const base = `https://drive.google.com/file/d/${fileId}/view.mp4`;
       return {
-        vlcWeb: resolvedMp4Url,
-        vlcDeep: `vlc://${resolvedMp4Url}`,
-        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(resolvedMp4Url)}`,
-        nplayer: `nplayer-${resolvedMp4Url}`
+        vlcWeb: hostedMp4,
+        vlcDeep: `vlc://${hostedMp4}`,
+        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(hostedMp4)}`,
+        nplayer: `nplayer-${hostedMp4}`
       };
     }
 
@@ -271,35 +258,16 @@
       setStatus('Checking Drive link and preparing MP4 URL...');
 
       const query = encodeURIComponent(fileId);
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 12000);
-      let response;
-      let data = {};
-
-      try {
-        response = await fetch(`/api/resolve?input=${query}`, { signal: controller.signal });
-        data = await response.json();
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          throw new Error('Resolve request timed out.');
-        }
-        throw new Error('Resolve request failed.');
-      } finally {
-        clearTimeout(timer);
-      }
+      const response = await fetch(`/api/resolve?input=${query}`);
+      const data = await response.json();
 
       if (resolveCounter !== nextCounter) return;
 
       if (!response.ok) {
-        throw new Error(data.error || data.code || 'Could not resolve this Drive URL.');
+        throw new Error(data.error || 'Could not resolve this Drive URL.');
       }
 
-      if (!data.mp4Url) {
-        throw new Error('Resolve API did not return an MP4 URL.');
-      }
-
-      resolvedMp4Url = data.mp4Url;
-      resolveWarning = data.validated ? '' : (data.warning || 'Could not fully validate this link, but generated URL anyway.');
+      resolvedMp4Url = data.mp4Url || '';
     }
 
     function updateActiveChip(nextFormat) {
@@ -319,8 +287,7 @@
       if (error) {
         currentOutput = '';
         resolvedMp4Url = '';
-        resolveWarning = '';
-        outputEl.textContent = 'No output yet.'
+        outputEl.textContent = 'No output yet.';
         setStatus(error, 'error');
         copyBtn.disabled = true;
         openBtn.disabled = true;
@@ -330,15 +297,20 @@
       try {
         await resolveMp4Url(fileId);
       } catch (err) {
-        resolvedMp4Url = buildDirectDriveMp4Url(fileId);
-        resolveWarning = `Resolve API failed, using direct Drive URL fallback: ${err.message}`;
+        currentOutput = '';
+        resolvedMp4Url = '';
+        outputEl.textContent = 'No output yet.';
+        setStatus(err.message, 'error');
+        copyBtn.disabled = true;
+        openBtn.disabled = true;
+        return;
       }
 
       const links = buildLinks();
       currentOutput = links[selectedFormat] || '';
 
       outputEl.textContent = currentOutput;
-      setStatus(resolveWarning || '✓ MP4 URL is ready.', resolveWarning ? '' : 'ok');
+      setStatus('✓ MP4 URL is ready.', 'ok');
       copyBtn.disabled = false;
       openBtn.disabled = false;
     }
