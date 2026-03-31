@@ -169,7 +169,7 @@
 <body>
   <main class="app">
     <h1>Google Drive MP4 Link Extractor</h1>
-    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to generate player-friendly URLs.</p>
+    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to generate a hosted MP4 URL that works across players.</p>
 
     <label for="input">Google Drive URL or File ID</label>
     <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
@@ -202,10 +202,10 @@
     const chipEls = [...document.querySelectorAll('.chip')];
 
     const hintsByFormat = {
-      vlcWeb: 'VLC desktop: open this URL in a browser or paste it into VLC as a network stream.',
-      vlcDeep: 'vlc:// deep link: launches VLC directly where supported (often desktop/mobile with registered handler).',
-      infuse: 'Infuse deep link: opens Infuse and asks it to resolve/play the encoded Google Drive URL.',
-      nplayer: 'nPlayer deep link: opens nPlayer with an HTTPS stream URL prefix.'
+      vlcWeb: 'VLC desktop: uses the hosted /mp4/... URL that streams from Google Drive through this app.',
+      vlcDeep: 'vlc:// deep link: launches VLC directly with the hosted MP4 URL where supported.',
+      infuse: 'Infuse deep link: opens Infuse with the hosted MP4 URL from this app.',
+      nplayer: 'nPlayer deep link: opens nPlayer with the hosted MP4 URL from this app.'
     };
 
     let selectedFormat = 'vlcWeb';
@@ -243,10 +243,10 @@
     function buildLinks(fileId) {
       const base = `https://drive.google.com/file/d/${fileId}/view.mp4`;
       return {
-        vlcWeb: base,
-        vlcDeep: `vlc://${base}`,
-        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(base)}`,
-        nplayer: `nplayer-${base}`
+        vlcWeb: hostedMp4,
+        vlcDeep: `vlc://${hostedMp4}`,
+        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(hostedMp4)}`,
+        nplayer: `nplayer-${hostedMp4}`
       };
     }
 
