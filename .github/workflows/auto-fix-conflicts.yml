@@ -4,15 +4,22 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+  workflow_dispatch: # 👈 Manual trigger added
+    inputs:
+      branch:
+        description: "Branch to fix (leave empty for current PR branch)"
+        required: false
+        default: ""
+
 jobs:
   auto-fix:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR branch
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.inputs.branch || github.head_ref }}
 
       - name: Fetch base branch
         run: git fetch origin main
@@ -40,5 +47,6 @@ jobs:
         run: |
           git config user.name "conflict-bot"
           git config user.email "bot@example.com"
+          git add .
           git commit -m "🤖 Auto-resolved merge conflicts" || echo "No changes"
           git push
