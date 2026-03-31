@@ -175,7 +175,7 @@
     <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
 
     <div class="chips" role="tablist" aria-label="Output format">
-      <button class="chip active" role="tab" aria-selected="true" data-format="mp4Direct">MP4 URL (direct)</button>
+      <button class="chip active" role="tab" aria-selected="true" data-format="mp4Direct">MP4 download URL</button>
       <button class="chip" role="tab" aria-selected="false" data-format="vlcWeb">VLC (desktop)</button>
       <button class="chip" role="tab" aria-selected="false" data-format="vlcDeep">vlc:// deep link</button>
       <button class="chip" role="tab" aria-selected="false" data-format="infuse">Infuse deep link</button>
@@ -203,7 +203,7 @@
     const chipEls = [...document.querySelectorAll('.chip')];
 
     const hintsByFormat = {
-      mp4Direct: 'Direct MP4-style URL: best for downloading/stream attempts when the Drive file is public.',
+      mp4Direct: 'Google Drive MP4 download endpoint: works when the file is public and Drive allows direct download.',
       vlcWeb: 'VLC desktop: open this URL in a browser or paste it into VLC as a network stream.',
       vlcDeep: 'vlc:// deep link: launches VLC directly where supported (often desktop/mobile with registered handler).',
       infuse: 'Infuse deep link: opens Infuse and asks it to resolve/play the encoded Google Drive URL.',

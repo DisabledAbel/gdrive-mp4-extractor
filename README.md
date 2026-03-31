@@ -11,7 +11,7 @@ A tiny single-file web app that converts a Google Drive share URL (or file ID) i
 
 ## Supported output formats
 
-- **MP4 URL (direct):** `https://drive.google.com/uc?export=download&id=FILE_ID` for direct download/stream attempts.
+- **MP4 download URL:** `https://drive.google.com/uc?export=download&id=FILE_ID` for direct download/stream attempts.
 - **VLC (desktop):** Standard Google Drive file-view URL that VLC can often open as a network target.
 - **`vlc://` deep link:** Tries to launch VLC directly using a custom protocol handler.
 - **Infuse deep link:** Uses `infuse://x-callback-url/play` with a percent-encoded URL payload.
