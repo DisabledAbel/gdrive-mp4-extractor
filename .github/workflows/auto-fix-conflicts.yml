@@ -15,7 +15,7 @@ on:
 jobs:
   auto-fix:
     runs-on: ubuntu-latest
-    if: contains(github.head_ref || github.ref_name, 'codex')
+    if: contains(github.head_ref, 'codex') || contains(github.event.inputs.branch, 'codex') || contains(github.ref_name, 'codex')
     permissions:
       contents: write
       pull-requests: write
