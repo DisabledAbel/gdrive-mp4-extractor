@@ -169,7 +169,7 @@
 <body>
   <main class="app">
     <h1>Google Drive MP4 Link Extractor</h1>
-    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to generate player-friendly URLs.</p>
+    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to validate it server-side and generate a working hosted MP4 URL.</p>
 
     <label for="input">Google Drive URL or File ID</label>
     <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
@@ -202,14 +202,16 @@
     const chipEls = [...document.querySelectorAll('.chip')];
 
     const hintsByFormat = {
-      vlcWeb: 'VLC desktop: open this URL in a browser or paste it into VLC as a network stream.',
-      vlcDeep: 'vlc:// deep link: launches VLC directly where supported (often desktop/mobile with registered handler).',
-      infuse: 'Infuse deep link: opens Infuse and asks it to resolve/play the encoded Google Drive URL.',
-      nplayer: 'nPlayer deep link: opens nPlayer with an HTTPS stream URL prefix.'
+      vlcWeb: 'VLC desktop: uses the hosted /mp4/... URL that streams from Google Drive through this app.',
+      vlcDeep: 'vlc:// deep link: launches VLC directly with the hosted MP4 URL where supported.',
+      infuse: 'Infuse deep link: opens Infuse with the hosted MP4 URL from this app.',
+      nplayer: 'nPlayer deep link: opens nPlayer with the hosted MP4 URL from this app.'
     };
 
     let selectedFormat = 'vlcWeb';
     let currentOutput = '';
+    let resolvedMp4Url = '';
+    let resolveCounter = 0;
 
     const patterns = [
       /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/i,
@@ -240,14 +242,40 @@
       return { error: 'Could not find a valid Google Drive file ID in that input.' };
     }
 
-    function buildLinks(fileId) {
-      const base = `https://drive.google.com/file/d/${fileId}/view`;
+    function buildLinks() {
+      if (!resolvedMp4Url) {
+        return {
+          vlcWeb: '',
+          vlcDeep: '',
+          infuse: '',
+          nplayer: ''
+        };
+      }
+
       return {
-        vlcWeb: base,
-        vlcDeep: `vlc://${base}`,
-        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(base)}`,
-        nplayer: `nplayer-${base}`
+        vlcWeb: resolvedMp4Url,
+        vlcDeep: `vlc://${resolvedMp4Url}`,
+        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(resolvedMp4Url)}`,
+        nplayer: `nplayer-${resolvedMp4Url}`
       };
+    }
+
+    async function resolveMp4Url(fileId) {
+      const nextCounter = resolveCounter + 1;
+      resolveCounter = nextCounter;
+      setStatus('Checking Drive link and preparing MP4 URL...');
+
+      const query = encodeURIComponent(fileId);
+      const response = await fetch(`/api/resolve?input=${query}`);
+      const data = await response.json();
+
+      if (resolveCounter !== nextCounter) return;
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not resolve this Drive URL.');
+      }
+
+      resolvedMp4Url = data.mp4Url || '';
     }
 
     function updateActiveChip(nextFormat) {
@@ -259,13 +287,14 @@
       });
     }
 
-    function render() {
+    async function render() {
       const { fileId, error } = extractFileId(inputEl.value);
 
       hintEl.textContent = hintsByFormat[selectedFormat];
 
       if (error) {
         currentOutput = '';
+        resolvedMp4Url = '';
         outputEl.textContent = 'No output yet.';
         setStatus(error, 'error');
         copyBtn.disabled = true;
@@ -273,11 +302,23 @@
         return;
       }
 
-      const links = buildLinks(fileId);
+      try {
+        await resolveMp4Url(fileId);
+      } catch (err) {
+        currentOutput = '';
+        resolvedMp4Url = '';
+        outputEl.textContent = 'No output yet.';
+        setStatus(err.message, 'error');
+        copyBtn.disabled = true;
+        openBtn.disabled = true;
+        return;
+      }
+
+      const links = buildLinks();
       currentOutput = links[selectedFormat] || '';
 
       outputEl.textContent = currentOutput;
-      setStatus('');
+      setStatus('✓ MP4 URL is ready.', 'ok');
       copyBtn.disabled = false;
       openBtn.disabled = false;
     }
