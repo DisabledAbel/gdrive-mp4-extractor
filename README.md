@@ -1,31 +1,34 @@
 # gdrive-mp4-extractor
 
-A tiny single-file web app that converts a Google Drive share URL (or file ID) into player-compatible links for VLC, Infuse, and nPlayer.
+A tiny web app that converts a Google Drive share URL (or file ID) into a hosted MP4 endpoint and player-compatible links.
 
-## How to use
+## How it works
 
-1. Open `index.html` directly in your browser, or host this repo with GitHub Pages.
-2. Paste a Google Drive share link (or raw file ID).
-3. Pick one of the output formats.
-4. Copy the generated URL or launch it directly with **Open / Launch**.
+1. Paste a Google Drive share URL (or raw file ID).
+2. The app calls `/api/resolve` to attempt validation before generating the MP4 URL.
+3. It then generates a Vercel-hosted URL in the format `/mp4/<FILE_ID>.mp4` (even if probe validation cannot complete).
+4. Opening that URL calls a serverless function which fetches the Drive file and streams it back as video.
+
+This gives you a stable app URL that behaves like an MP4 endpoint for VLC/Infuse/nPlayer.
 
 ## Supported output formats
 
-- **VLC (desktop):** Standard Google Drive file-view URL that VLC can often open as a network target.
-- **`vlc://` deep link:** Tries to launch VLC directly using a custom protocol handler.
-- **Infuse deep link:** Uses `infuse://x-callback-url/play` with a percent-encoded URL payload.
-- **nPlayer deep link:** Uses the `nplayer-https://...` scheme to pass an HTTPS URL into nPlayer.
+- **VLC (desktop):** Hosted MP4 URL.
+- **`vlc://` deep link:** Launches VLC with the hosted MP4 URL.
+- **Infuse deep link:** Uses `infuse://x-callback-url/play` with the hosted MP4 URL.
+- **nPlayer deep link:** Uses the `nplayer-https://...` scheme with the hosted MP4 URL.
+
+## Deploy on Vercel
+
+1. Push this repository to GitHub.
+2. Import it into Vercel.
+3. Deploy (no build command needed for this static + serverless setup).
+4. Open your deployed domain and paste a Drive URL.
+
+The rewrite in `vercel.json` maps `/mp4/:fileId.mp4` to the serverless function at `/api/mp4/:fileId`.
 
 ## Important notes
 
-- Your Google Drive file must be shared as **Anyone with the link**.
-- Google Drive does **not** expose a stable raw unauthenticated MP4 stream URL; this app generates player-compatible links that VLC, Infuse, and nPlayer resolve on their own.
-
-## GitHub Pages
-
-To publish at `https://USERNAME.github.io/gdrive-mp4-extractor/`:
-
-1. Push this repo to GitHub as `gdrive-mp4-extractor`.
-2. In GitHub, go to **Settings → Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**.
-4. Select branch **main** and folder **/(root)**, then save.
+- The Google Drive file must be shared as **Anyone with the link**.
+- Streaming succeeds only for files Google Drive allows unauthenticated download access to.
+- Very large files may be slower due to Drive confirmation/interstitial behavior.
