@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.branch || github.head_ref || 'codex/create-gdrive-mp4-extractor-repository-structure-3l354h' }}
           token: ${{ secrets.GITHUB_TOKEN }}
