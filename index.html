@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google Drive MP4 Link Extractor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0e13;
+      --panel: #121722;
+      --text: #e8ecf3;
+      --muted: #a3acba;
+      --accent: #66b3ff;
+      --accent-soft: #1e2f46;
+      --danger: #ff7171;
+      --ok: #80e0a7;
+      --border: #2a3342;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #111827 0%, var(--bg) 50%);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(820px, 100%);
+      background: color-mix(in oklab, var(--panel) 92%, black);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 18px 40px rgb(0 0 0 / 35%);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 1.3rem;
+    }
+
+    .subtitle {
+      margin-top: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    textarea,
+    .output {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: #0d121a;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      line-height: 1.4;
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    textarea:focus,
+    button:focus-visible,
+    .chip:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .chips {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border: 1px solid var(--border);
+      background: #0e141e;
+      color: var(--text);
+      border-radius: 999px;
+      font: inherit;
+      cursor: pointer;
+      padding: 8px 12px;
+      transition: 120ms ease;
+    }
+
+    .chip.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #dcebff;
+    }
+
+    .result {
+      margin-top: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .output {
+      min-height: 52px;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+    }
+
+    .hint,
+    .status {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #111928;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+      background: color-mix(in oklab, var(--accent-soft) 70%, #0a0f18);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Google Drive MP4 Link Extractor</h1>
+    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to generate a direct MP4-style URL and player-friendly links.</p>
+
+    <label for="input">Google Drive URL or File ID</label>
+    <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
+
+    <div class="chips" role="tablist" aria-label="Output format">
+      <button class="chip active" role="tab" aria-selected="true" data-format="mp4Direct">MP4 URL (direct)</button>
+      <button class="chip" role="tab" aria-selected="false" data-format="vlcWeb">VLC (desktop)</button>
+      <button class="chip" role="tab" aria-selected="false" data-format="vlcDeep">vlc:// deep link</button>
+      <button class="chip" role="tab" aria-selected="false" data-format="infuse">Infuse deep link</button>
+      <button class="chip" role="tab" aria-selected="false" data-format="nplayer">nPlayer deep link</button>
+    </div>
+
+    <section class="result" aria-live="polite">
+      <div id="output" class="output">Enter a link to generate output.</div>
+      <p id="hint" class="hint">Choose a format above after entering a valid link.</p>
+      <p id="status" class="status"></p>
+      <div class="actions">
+        <button id="copyBtn" class="primary" disabled>Copy URL</button>
+        <button id="openBtn" disabled>Open / Launch</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const hintEl = document.getElementById('hint');
+    const statusEl = document.getElementById('status');
+    const copyBtn = document.getElementById('copyBtn');
+    const openBtn = document.getElementById('openBtn');
+    const chipEls = [...document.querySelectorAll('.chip')];
+
+    const hintsByFormat = {
+      mp4Direct: 'Direct MP4-style URL: best for downloading/stream attempts when the Drive file is public.',
+      vlcWeb: 'VLC desktop: open this URL in a browser or paste it into VLC as a network stream.',
+      vlcDeep: 'vlc:// deep link: launches VLC directly where supported (often desktop/mobile with registered handler).',
+      infuse: 'Infuse deep link: opens Infuse and asks it to resolve/play the encoded Google Drive URL.',
+      nplayer: 'nPlayer deep link: opens nPlayer with an HTTPS stream URL prefix.'
+    };
+
+    let selectedFormat = 'mp4Direct';
+    let currentOutput = '';
+
+    const patterns = [
+      /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/i,
+      /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]{10,})/i,
+      /drive\.google\.com\/uc\?(?:[^\s#]*&)?id=([a-zA-Z0-9_-]{10,})/i,
+      /[?&]id=([a-zA-Z0-9_-]{10,})/i,
+      /^([a-zA-Z0-9_-]{10,})$/
+    ];
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = `status${type ? ` ${type}` : ''}`;
+    }
+
+    function extractFileId(raw) {
+      const value = raw.trim();
+      if (!value) {
+        return { error: 'Please paste a Google Drive URL or file ID.' };
+      }
+
+      for (const pattern of patterns) {
+        const match = value.match(pattern);
+        if (match && match[1]) {
+          return { fileId: match[1] };
+        }
+      }
+
+      return { error: 'Could not find a valid Google Drive file ID in that input.' };
+    }
+
+    function buildLinks(fileId) {
+      const base = `https://drive.google.com/file/d/${fileId}/view`;
+      return {
+        mp4Direct: `https://drive.google.com/uc?export=download&id=${fileId}`,
+        vlcWeb: base,
+        vlcDeep: `vlc://${base}`,
+        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(base)}`,
+        nplayer: `nplayer-${base}`
+      };
+    }
+
+    function updateActiveChip(nextFormat) {
+      selectedFormat = nextFormat;
+      chipEls.forEach((chip) => {
+        const active = chip.dataset.format === nextFormat;
+        chip.classList.toggle('active', active);
+        chip.setAttribute('aria-selected', String(active));
+      });
+    }
+
+    function render() {
+      const { fileId, error } = extractFileId(inputEl.value);
+
+      hintEl.textContent = hintsByFormat[selectedFormat];
+
+      if (error) {
+        currentOutput = '';
+        outputEl.textContent = 'No output yet.';
+        setStatus(error, 'error');
+        copyBtn.disabled = true;
+        openBtn.disabled = true;
+        return;
+      }
+
+      const links = buildLinks(fileId);
+      currentOutput = links[selectedFormat] || '';
+
+      outputEl.textContent = currentOutput;
+      setStatus('');
+      copyBtn.disabled = false;
+      openBtn.disabled = false;
+    }
+
+    async function copyCurrentUrl() {
+      if (!currentOutput) return;
+      try {
+        await navigator.clipboard.writeText(currentOutput);
+        setStatus('✓ copied', 'ok');
+        setTimeout(() => {
+          if (statusEl.textContent === '✓ copied') {
+            setStatus('');
+          }
+        }, 1200);
+      } catch {
+        setStatus('Clipboard access failed. Copy manually from the output box.', 'error');
+      }
+    }
+
+    function openCurrentUrl() {
+      if (!currentOutput) return;
+      window.open(currentOutput, '_blank', 'noopener,noreferrer');
+    }
+
+    inputEl.addEventListener('input', render);
+    chipEls.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        updateActiveChip(chip.dataset.format);
+        render();
+      });
+    });
+
+    copyBtn.addEventListener('click', copyCurrentUrl);
+    openBtn.addEventListener('click', openCurrentUrl);
+
+    render();
+  </script>
+</body>
+</html>
