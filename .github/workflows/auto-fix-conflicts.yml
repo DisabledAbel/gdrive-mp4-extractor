@@ -25,6 +25,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - name: Configure git identity
+        run: |
+          git config user.name "conflict-bot"
+          git config user.email "bot@example.com"
+
       - name: Fetch base branch
         run: git fetch origin main
 
@@ -48,8 +53,6 @@ jobs:
 
       - name: Commit & push changes
         run: |
-          git config user.name "conflict-bot"
-          git config user.email "bot@example.com"
           git add .
           git commit -m "🤖 Auto-resolved merge conflicts" || echo "No changes"
           git push
