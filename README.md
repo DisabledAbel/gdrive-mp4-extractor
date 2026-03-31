@@ -1,6 +1,6 @@
 # gdrive-mp4-extractor
 
-A tiny single-file web app that converts a Google Drive share URL (or file ID) into a direct MP4-style URL plus player-compatible links for VLC, Infuse, and nPlayer.
+A tiny single-file web app that converts a Google Drive share URL (or file ID) into player-compatible links for VLC, Infuse, and nPlayer.
 
 ## How to use
 
@@ -11,7 +11,6 @@ A tiny single-file web app that converts a Google Drive share URL (or file ID) i
 
 ## Supported output formats
 
-- **MP4 download URL:** `https://drive.google.com/uc?export=download&id=FILE_ID` for direct download/stream attempts.
 - **VLC (desktop):** Standard Google Drive file-view URL that VLC can often open as a network target.
 - **`vlc://` deep link:** Tries to launch VLC directly using a custom protocol handler.
 - **Infuse deep link:** Uses `infuse://x-callback-url/play` with a percent-encoded URL payload.
@@ -20,7 +19,7 @@ A tiny single-file web app that converts a Google Drive share URL (or file ID) i
 ## Important notes
 
 - Your Google Drive file must be shared as **Anyone with the link**.
-- Google Drive does **not** expose a guaranteed stable raw unauthenticated `.mp4` stream URL; the generated direct URL and player links still depend on Google Drive redirects/auth behavior.
+- Google Drive does **not** expose a stable raw unauthenticated MP4 stream URL; this app generates player-compatible links that VLC, Infuse, and nPlayer resolve on their own.
 
 ## GitHub Pages
 
