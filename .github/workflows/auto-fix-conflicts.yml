@@ -3,30 +3,33 @@ name: Auto Fix Conflicts
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-
-  workflow_dispatch: # 👈 Manual trigger added
+  workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to fix (leave empty for current PR branch)"
+        description: "Branch to fix"
         required: false
-        default: ""
+        default: "codex/create-gdrive-mp4-extractor-repository-structure-3l354h"
 
 jobs:
   auto-fix:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch || github.head_ref }}
+          ref: ${{ github.event.inputs.branch || github.head_ref || 'codex/create-gdrive-mp4-extractor-repository-structure-3l354h' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Fetch base branch
         run: git fetch origin main
 
       - name: Try auto-merge (prefer incoming changes)
-        run: |
-          git merge -X theirs origin/main || true
+        run: git merge -X theirs origin/main || true
 
       - name: Detect conflicts
         id: conflicts
