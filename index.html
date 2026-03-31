@@ -241,10 +241,7 @@
     }
 
     function buildLinks(fileId) {
-      const origin = window.location.origin && window.location.origin !== 'null'
-        ? window.location.origin
-        : '';
-      const hostedMp4 = `${origin}/mp4/${fileId}.mp4`;
+      const base = `https://drive.google.com/file/d/${fileId}/view.mp4`;
       return {
         vlcWeb: hostedMp4,
         vlcDeep: `vlc://${hostedMp4}`,
