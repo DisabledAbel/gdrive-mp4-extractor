@@ -3,27 +3,35 @@ name: Auto Fix Conflicts
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches-ignore:
+      - main
   workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to fix (leave empty for current PR branch)"
+        description: "Branch to fix"
         required: false
         default: ""
 
 jobs:
   auto-fix:
     runs-on: ubuntu-latest
+    if: contains(github.head_ref || github.ref_name, 'codex')
     permissions:
       contents: write
       pull-requests: write
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.branch || github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "conflict-bot"
+          git config user.email "bot@example.com"
 
       - name: Fetch base branch
         run: git fetch origin main
@@ -48,8 +56,6 @@ jobs:
 
       - name: Commit & push changes
         run: |
-          git config user.name "conflict-bot"
-          git config user.email "bot@example.com"
           git add .
           git commit -m "🤖 Auto-resolved merge conflicts" || echo "No changes"
           git push
