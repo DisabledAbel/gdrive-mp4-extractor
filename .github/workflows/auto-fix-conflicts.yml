@@ -1,0 +1,44 @@
+name: Auto Fix Conflicts
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  auto-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Fetch base branch
+        run: git fetch origin main
+
+      - name: Try auto-merge (prefer incoming changes)
+        run: |
+          git merge -X theirs origin/main || true
+
+      - name: Detect conflicts
+        id: conflicts
+        run: |
+          files=$(git diff --name-only --diff-filter=U)
+          echo "files=$files" >> $GITHUB_OUTPUT
+
+      - name: Auto resolve conflicts (fallback)
+        if: steps.conflicts.outputs.files != ''
+        run: |
+          for file in ${{ steps.conflicts.outputs.files }}; do
+            echo "Resolving $file"
+            git checkout --theirs $file
+            git add $file
+          done
+
+      - name: Commit & push changes
+        run: |
+          git config user.name "conflict-bot"
+          git config user.email "bot@example.com"
+          git commit -m "🤖 Auto-resolved merge conflicts" || echo "No changes"
+          git push
