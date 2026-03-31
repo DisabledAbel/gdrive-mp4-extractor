@@ -3,16 +3,19 @@ name: Auto Fix Conflicts
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches-ignore:
+      - main
   workflow_dispatch:
     inputs:
       branch:
         description: "Branch to fix"
         required: false
-        default: "codex/create-gdrive-mp4-extractor-repository-structure-3l354h"
+        default: ""
 
 jobs:
   auto-fix:
     runs-on: ubuntu-latest
+    if: contains(github.head_ref, 'codex') || contains(github.event.inputs.branch, 'codex') || contains(github.ref_name, 'codex')
     permissions:
       contents: write
       pull-requests: write
@@ -21,7 +24,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.inputs.branch || github.head_ref || 'codex/create-gdrive-mp4-extractor-repository-structure-3l354h' }}
+          ref: ${{ github.event.inputs.branch || github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
