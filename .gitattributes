@@ -1,0 +1,8 @@
+# Auto-resolve common annoying files
+package-lock.json merge=ours
+yarn.lock merge=ours
+pnpm-lock.yaml merge=ours
+
+# Optional: always take incoming version for generated files
+dist/* merge=theirs
+build/* merge=theirs
