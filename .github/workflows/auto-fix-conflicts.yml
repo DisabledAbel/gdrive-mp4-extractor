@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to fix"
+        description: "Branch to fix (leave empty for current PR branch)"
         required: false
-        default: "codex/create-gdrive-mp4-extractor-repository-structure-3l354h"
+        default: ""
 
 jobs:
   auto-fix:
@@ -19,16 +19,11 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch || github.head_ref || 'codex/create-gdrive-mp4-extractor-repository-structure-3l354h' }}
+          ref: ${{ github.event.inputs.branch || github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-
-      - name: Configure git identity
-        run: |
-          git config user.name "conflict-bot"
-          git config user.email "bot@example.com"
 
       - name: Fetch base branch
         run: git fetch origin main
@@ -53,6 +48,8 @@ jobs:
 
       - name: Commit & push changes
         run: |
+          git config user.name "conflict-bot"
+          git config user.email "bot@example.com"
           git add .
           git commit -m "🤖 Auto-resolved merge conflicts" || echo "No changes"
           git push
