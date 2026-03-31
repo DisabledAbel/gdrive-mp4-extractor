@@ -169,7 +169,7 @@
 <body>
   <main class="app">
     <h1>Google Drive MP4 Link Extractor</h1>
-    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to validate it server-side and generate a working hosted MP4 URL.</p>
+    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to generate a hosted MP4 URL that works across players.</p>
 
     <label for="input">Google Drive URL or File ID</label>
     <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
@@ -242,21 +242,13 @@
       return { error: 'Could not find a valid Google Drive file ID in that input.' };
     }
 
-    function buildLinks() {
-      if (!resolvedMp4Url) {
-        return {
-          vlcWeb: '',
-          vlcDeep: '',
-          infuse: '',
-          nplayer: ''
-        };
-      }
-
+    function buildLinks(fileId) {
+      const base = `https://drive.google.com/file/d/${fileId}/view.mp4`;
       return {
-        vlcWeb: resolvedMp4Url,
-        vlcDeep: `vlc://${resolvedMp4Url}`,
-        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(resolvedMp4Url)}`,
-        nplayer: `nplayer-${resolvedMp4Url}`
+        vlcWeb: hostedMp4,
+        vlcDeep: `vlc://${hostedMp4}`,
+        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(hostedMp4)}`,
+        nplayer: `nplayer-${hostedMp4}`
       };
     }
 
