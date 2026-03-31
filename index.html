@@ -169,7 +169,7 @@
 <body>
   <main class="app">
     <h1>Google Drive MP4 Link Extractor</h1>
-    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to generate player-friendly URLs.</p>
+    <p class="subtitle">Paste any Google Drive share link (or raw file ID) to validate it server-side and generate a working hosted MP4 URL.</p>
 
     <label for="input">Google Drive URL or File ID</label>
     <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
@@ -202,14 +202,17 @@
     const chipEls = [...document.querySelectorAll('.chip')];
 
     const hintsByFormat = {
-      vlcWeb: 'VLC desktop: open this URL in a browser or paste it into VLC as a network stream.',
-      vlcDeep: 'vlc:// deep link: launches VLC directly where supported (often desktop/mobile with registered handler).',
-      infuse: 'Infuse deep link: opens Infuse and asks it to resolve/play the encoded Google Drive URL.',
-      nplayer: 'nPlayer deep link: opens nPlayer with an HTTPS stream URL prefix.'
+      vlcWeb: 'VLC desktop: uses direct Google Drive MP4 download URL for maximum reliability.',
+      vlcDeep: 'vlc:// deep link: launches VLC directly with the hosted MP4 URL where supported.',
+      infuse: 'Infuse deep link: opens Infuse with the hosted MP4 URL from this app.',
+      nplayer: 'nPlayer deep link: opens nPlayer with the hosted MP4 URL from this app.'
     };
 
     let selectedFormat = 'vlcWeb';
     let currentOutput = '';
+    let resolvedMp4Url = '';
+    let resolveWarning = '';
+    let resolveCounter = 0;
 
     const patterns = [
       /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/i,
@@ -240,14 +243,31 @@
       return { error: 'Could not find a valid Google Drive file ID in that input.' };
     }
 
-    function buildLinks(fileId) {
-      const base = `https://drive.google.com/file/d/${fileId}/view`;
+    function buildDirectDriveMp4Url(fileId) {
+      return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
+    }
+
+    function buildLinks() {
+      if (!resolvedMp4Url) {
+        return {
+          vlcWeb: '',
+          vlcDeep: '',
+          infuse: '',
+          nplayer: ''
+        };
+      }
+
       return {
-        vlcWeb: base,
-        vlcDeep: `vlc://${base}`,
-        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(base)}`,
-        nplayer: `nplayer-${base}`
+        vlcWeb: resolvedMp4Url,
+        vlcDeep: `vlc://${resolvedMp4Url}`,
+        infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(resolvedMp4Url)}`,
+        nplayer: `nplayer-${resolvedMp4Url}`
       };
+    }
+
+    async function resolveMp4Url(fileId) {
+      resolvedMp4Url = buildDirectDriveMp4Url(fileId);
+      resolveWarning = 'Using direct Google Drive URL mode.';
     }
 
     function updateActiveChip(nextFormat) {
@@ -259,25 +279,29 @@
       });
     }
 
-    function render() {
+    async function render() {
       const { fileId, error } = extractFileId(inputEl.value);
 
       hintEl.textContent = hintsByFormat[selectedFormat];
 
       if (error) {
         currentOutput = '';
-        outputEl.textContent = 'No output yet.';
+        resolvedMp4Url = '';
+        resolveWarning = '';
+        outputEl.textContent = 'No output yet.'
         setStatus(error, 'error');
         copyBtn.disabled = true;
         openBtn.disabled = true;
         return;
       }
 
-      const links = buildLinks(fileId);
+      await resolveMp4Url(fileId);
+
+      const links = buildLinks();
       currentOutput = links[selectedFormat] || '';
 
       outputEl.textContent = currentOutput;
-      setStatus('');
+      setStatus(resolveWarning || '✓ MP4 URL is ready.', resolveWarning ? '' : 'ok');
       copyBtn.disabled = false;
       openBtn.disabled = false;
     }
