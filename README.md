@@ -10,7 +10,7 @@ A tiny web app that converts a Google Drive share URL (or file ID) into a hosted
 
 This gives you a stable app URL that behaves like an MP4 endpoint for VLC/Infuse/nPlayer.
 
-## Supported output formats
+## Project structure
 
 - **VLC (desktop):** Hosted MP4 URL.
 - **`vlc://` deep link:** Launches VLC with the hosted MP4 URL.
@@ -26,7 +26,7 @@ This gives you a stable app URL that behaves like an MP4 endpoint for VLC/Infuse
 
 The rewrite in `vercel.json` maps `/mp4/:fileId.mp4` to the serverless function at `/api/mp4/:fileId`.
 
-## Important notes
+---
 
 - The Google Drive file must be shared as **Anyone with the link**.
 - Streaming succeeds only for files Google Drive allows unauthenticated download access to.
