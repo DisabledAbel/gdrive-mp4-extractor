@@ -1,4 +1,4 @@
-const { extractFileId, fetchDriveStream } = require('../lib/drive');
+const { extractFileId } = require('../lib/drive');
 
 module.exports = async function handler(req, res) {
   try {
@@ -10,17 +10,13 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const probeResponse = await fetchDriveStream(fileId, { rangeProbe: true });
-    probeResponse.body.cancel();
-
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host;
     const mp4Url = `${protocol}://${host}/mp4/${fileId}.mp4`;
 
     res.status(200).json({
       fileId,
-      mp4Url,
-      contentType: probeResponse.headers.get('content-type') || null
+      mp4Url
     });
   } catch (error) {
     res.status(502).json({

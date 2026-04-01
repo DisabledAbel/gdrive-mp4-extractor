@@ -242,8 +242,8 @@
       return { error: 'Could not find a valid Google Drive file ID in that input.' };
     }
 
-    function buildLinks(fileId) {
-      const base = `https://drive.google.com/file/d/${fileId}/view.mp4`;
+    function buildLinks() {
+      const hostedMp4 = resolvedMp4Url;
       return {
         vlcWeb: hostedMp4,
         vlcDeep: `vlc://${hostedMp4}`,
