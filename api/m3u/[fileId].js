@@ -1,18 +1,5 @@
 const { extractDriveParams, sanitizeFileName } = require('../../lib/drive');
 
-function getPublicOrigin(req) {
-  const rawProtocol = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim().toLowerCase();
-  const protocol = rawProtocol === 'http' ? 'http' : 'https';
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || process.env.VERCEL_URL || 'localhost:3000').split(',')[0].trim();
-  return `${protocol}://${host}`;
-}
-
-function appendQuery(url, key, value) {
-  if (!value) return url;
-  const joiner = url.includes('?') ? '&' : '?';
-  return `${url}${joiner}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-}
-
 module.exports = async function handler(req, res) {
   try {
     const rawId = req.query.fileId || req.query.id || req.query.url;
@@ -24,10 +11,10 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const origin = getPublicOrigin(req);
-    const safeFileId = encodeURIComponent(fileId);
-    let mp4Url = `${origin}/mp4/${safeFileId}.mp4`;
-    if (resourceKey) mp4Url = appendQuery(mp4Url, 'rk', resourceKey);
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const mp4Url = new URL(`${protocol}://${host}/mp4/${fileId}.mp4`);
+    if (resourceKey) mp4Url.searchParams.set('rk', resourceKey);
 
     const fileName = sanitizeFileName(req.query.name || fileId);
     const playlist = [
@@ -35,7 +22,7 @@ module.exports = async function handler(req, res) {
       '#EXT-X-VERSION:3',
       '#EXT-X-PLAYLIST-TYPE:VOD',
       '#EXTINF:-1,' + fileName,
-      mp4Url,
+      mp4Url.toString(),
       '#EXT-X-ENDLIST'
     ].join('\n');
 
