@@ -1,4 +1,4 @@
-const { extractFileId, fetchDriveStream } = require('../lib/drive');
+const { extractFileId } = require('../lib/drive');
 
 module.exports = async function handler(req, res) {
   try {
@@ -14,22 +14,9 @@ module.exports = async function handler(req, res) {
     const host = req.headers.host;
     const mp4Url = `${protocol}://${host}/mp4/${fileId}.mp4`;
 
-    let contentType = null;
-    let warning = null;
-
-    try {
-      const probeResponse = await fetchDriveStream(fileId, { rangeProbe: true });
-      contentType = probeResponse.headers.get('content-type') || null;
-      probeResponse.body?.cancel();
-    } catch (probeError) {
-      warning = `Validation probe failed, but a hosted URL was still generated: ${probeError.message}`;
-    }
-
     res.status(200).json({
       fileId,
-      mp4Url,
-      contentType,
-      warning
+      mp4Url
     });
   } catch (error) {
     res.status(502).json({
