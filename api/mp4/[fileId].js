@@ -1,26 +1,36 @@
 const { Readable } = require('stream');
-const { extractFileId, sanitizeFileName, fetchDriveStream } = require('../../lib/drive');
+const { extractDriveParams, sanitizeFileName, fetchDriveStream } = require('../../lib/drive');
 
 module.exports = async function handler(req, res) {
   try {
     const rawId = req.query.fileId || req.query.id || req.query.url;
-    const fileId = extractFileId(rawId);
+    const { fileId, resourceKey: parsedResourceKey } = extractDriveParams(rawId);
+    const resourceKey = req.query.rk || req.query.resourcekey || parsedResourceKey || null;
 
     if (!fileId) {
       res.status(400).json({ error: 'Missing or invalid Google Drive file ID.' });
       return;
     }
 
-    const driveResponse = await fetchDriveStream(fileId);
+    const requestRange = req.headers.range;
+    const driveResponse = await fetchDriveStream(fileId, {
+      resourceKey,
+      ...(requestRange ? { range: requestRange } : {})
+    });
+
     const upstreamContentType = driveResponse.headers.get('content-type') || 'video/mp4';
     const upstreamLength = driveResponse.headers.get('content-length');
     const upstreamDisposition = driveResponse.headers.get('content-disposition') || '';
+    const upstreamAcceptRanges = driveResponse.headers.get('accept-ranges');
+    const upstreamContentRange = driveResponse.headers.get('content-range');
     const matchedName = upstreamDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
     const fileName = sanitizeFileName(decodeURIComponent(matchedName?.[1] || matchedName?.[2] || fileId));
 
-    res.statusCode = 200;
+    res.statusCode = driveResponse.status;
     res.setHeader('Content-Type', upstreamContentType.includes('video') ? upstreamContentType : 'video/mp4');
     if (upstreamLength) res.setHeader('Content-Length', upstreamLength);
+    if (upstreamAcceptRanges) res.setHeader('Accept-Ranges', upstreamAcceptRanges);
+    if (upstreamContentRange) res.setHeader('Content-Range', upstreamContentRange);
     res.setHeader('Content-Disposition', `inline; filename="${fileName.endsWith('.mp4') ? fileName : `${fileName}.mp4`}"`);
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
