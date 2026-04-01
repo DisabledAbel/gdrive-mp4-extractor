@@ -52,10 +52,6 @@ https://drive.google.com/open?id=FILE_ID
 
 ## Deploy your own
 
-This project is a single static HTML file — deploy it anywhere that serves static sites.
-
-**Vercel (recommended)**
-
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/DisabledAbel/gdrive-mp4-extractor)
 
 ---
