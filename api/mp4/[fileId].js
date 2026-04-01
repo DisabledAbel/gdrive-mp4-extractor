@@ -1,17 +1,18 @@
 const { Readable } = require('stream');
-const { extractFileId, sanitizeFileName, fetchDriveStream } = require('../../lib/drive');
+const { extractDriveParams, sanitizeFileName, fetchDriveStream } = require('../../lib/drive');
 
 module.exports = async function handler(req, res) {
   try {
     const rawId = req.query.fileId || req.query.id || req.query.url;
-    const fileId = extractFileId(rawId);
+    const { fileId, resourceKey: parsedResourceKey } = extractDriveParams(rawId);
+    const resourceKey = req.query.rk || req.query.resourcekey || parsedResourceKey || null;
 
     if (!fileId) {
       res.status(400).json({ error: 'Missing or invalid Google Drive file ID.' });
       return;
     }
 
-    const driveResponse = await fetchDriveStream(fileId);
+    const driveResponse = await fetchDriveStream(fileId, { resourceKey });
     const upstreamContentType = driveResponse.headers.get('content-type') || 'video/mp4';
     const upstreamLength = driveResponse.headers.get('content-length');
     const upstreamDisposition = driveResponse.headers.get('content-disposition') || '';
