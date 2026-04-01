@@ -12,12 +12,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const requestRange = req.headers.range;
-    const driveResponse = await fetchDriveStream(fileId, {
-      resourceKey,
-      ...(requestRange ? { range: requestRange } : {})
-    });
-
+    const driveResponse = await fetchDriveStream(fileId, { resourceKey });
     const upstreamContentType = driveResponse.headers.get('content-type') || 'video/mp4';
     const upstreamLength = driveResponse.headers.get('content-length');
     const upstreamDisposition = driveResponse.headers.get('content-disposition') || '';
