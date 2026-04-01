@@ -15,10 +15,14 @@ module.exports = async function handler(req, res) {
     const mp4Url = new URL(`${protocol}://${host}/mp4/${fileId}.mp4`);
     if (resourceKey) mp4Url.searchParams.set('rk', resourceKey);
 
+    const downloadUrl = new URL(mp4Url.toString());
+    downloadUrl.searchParams.set('download', '1');
+
     res.status(200).json({
       fileId,
       resourceKey,
-      mp4Url: mp4Url.toString()
+      mp4Url: mp4Url.toString(),
+      downloadUrl: downloadUrl.toString()
     });
   } catch (error) {
     res.status(502).json({

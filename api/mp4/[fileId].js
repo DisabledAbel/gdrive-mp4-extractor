@@ -13,6 +13,8 @@ module.exports = async function handler(req, res) {
     }
 
     const driveResponse = await fetchDriveStream(fileId, { resourceKey });
+    const forceDownload = String(req.query.download || req.query.dl || '').toLowerCase() === '1'
+      || String(req.query.download || req.query.dl || '').toLowerCase() === 'true';
     const upstreamContentType = driveResponse.headers.get('content-type') || 'video/mp4';
     const upstreamLength = driveResponse.headers.get('content-length');
     const upstreamDisposition = driveResponse.headers.get('content-disposition') || '';
@@ -26,7 +28,7 @@ module.exports = async function handler(req, res) {
     if (upstreamLength) res.setHeader('Content-Length', upstreamLength);
     if (upstreamAcceptRanges) res.setHeader('Accept-Ranges', upstreamAcceptRanges);
     if (upstreamContentRange) res.setHeader('Content-Range', upstreamContentRange);
-    res.setHeader('Content-Disposition', `inline; filename="${fileName.endsWith('.mp4') ? fileName : `${fileName}.mp4`}"`);
+    res.setHeader('Content-Disposition', `${forceDownload ? 'attachment' : 'inline'}; filename="${fileName.endsWith('.mp4') ? fileName : `${fileName}.mp4`}"`);
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
     Readable.fromWeb(driveResponse.body).pipe(res);
