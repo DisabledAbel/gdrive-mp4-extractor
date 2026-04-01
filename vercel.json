@@ -2,7 +2,11 @@
   "rewrites": [
     {
       "source": "/mp4/:fileId.mp4",
-      "destination": "/api/mp4/:fileId"
+      "destination": "/api/mp4/:fileId?ext=mp4"
+    },
+    {
+      "source": "/mp4/:fileId.mov",
+      "destination": "/api/mp4/:fileId?ext=mov"
     }
   ]
 }

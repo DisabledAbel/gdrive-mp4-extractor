@@ -175,10 +175,12 @@
     <textarea id="input" placeholder="https://drive.google.com/file/d/FILE_ID/view"></textarea>
 
     <div class="chips" role="tablist" aria-label="Output format">
-      <button class="chip active" role="tab" aria-selected="true" data-format="vlcWeb">VLC (desktop)</button>
+      <button class="chip active" role="tab" aria-selected="true" data-format="vlcWeb">Vercel .mp4 URL</button>
+      <button class="chip" role="tab" aria-selected="false" data-format="movWeb">Vercel .mov URL</button>
       <button class="chip" role="tab" aria-selected="false" data-format="vlcDeep">vlc:// deep link</button>
       <button class="chip" role="tab" aria-selected="false" data-format="infuse">Infuse deep link</button>
       <button class="chip" role="tab" aria-selected="false" data-format="nplayer">nPlayer deep link</button>
+      <button class="chip" role="tab" aria-selected="false" data-format="download">Direct download URL</button>
     </div>
 
     <section class="result" aria-live="polite">
@@ -188,6 +190,7 @@
       <div class="actions">
         <button id="copyBtn" class="primary" disabled>Copy URL</button>
         <button id="openBtn" disabled>Open / Launch</button>
+        <button id="downloadBtn" disabled>Download video</button>
       </div>
     </section>
   </main>
@@ -199,19 +202,31 @@
     const statusEl = document.getElementById('status');
     const copyBtn = document.getElementById('copyBtn');
     const openBtn = document.getElementById('openBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
     const chipEls = [...document.querySelectorAll('.chip')];
 
     const hintsByFormat = {
-      vlcWeb: 'VLC desktop: uses the hosted /mp4/... URL that streams from Google Drive through this app.',
+      vlcWeb: 'Hosted Vercel MP4 URL ending in .mp4.',
+      movWeb: 'Hosted Vercel MOV URL ending in .mov.',
       vlcDeep: 'vlc:// deep link: launches VLC directly with the hosted MP4 URL where supported.',
       infuse: 'Infuse deep link: opens Infuse with the hosted MP4 URL from this app.',
-      nplayer: 'nPlayer deep link: opens nPlayer with the hosted MP4 URL from this app.'
+      nplayer: 'nPlayer deep link: opens nPlayer with the hosted MP4 URL from this app.',
+      download: 'Direct download URL: prompts your browser to save the video file through this app.'
     };
 
     let selectedFormat = 'vlcWeb';
     let currentOutput = '';
     let resolvedMp4Url = '';
+    let resolvedDownloadUrl = '';
+    let resolvedMovUrl = '';
     let resolveCounter = 0;
+
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('ok', 'error');
+      if (type) statusEl.classList.add(type);
+    }
 
     function getRawInput() {
       const value = inputEl.value.trim();
@@ -224,11 +239,14 @@
 
     function buildLinks() {
       const hostedMp4 = resolvedMp4Url;
+      const hostedMov = resolvedMovUrl || hostedMp4.replace(/\.mp4(\?|$)/i, '.mov$1');
       return {
         vlcWeb: hostedMp4,
+        movWeb: hostedMov,
         vlcDeep: `vlc://${hostedMp4}`,
         infuse: `infuse://x-callback-url/play?url=${encodeURIComponent(hostedMp4)}`,
-        nplayer: `nplayer-${hostedMp4}`
+        nplayer: `nplayer-${hostedMp4}`,
+        download: resolvedDownloadUrl || `${hostedMp4}${hostedMp4.includes('?') ? '&' : '?'}download=1`
       };
     }
 
@@ -248,6 +266,8 @@
       }
 
       resolvedMp4Url = data.mp4Url || '';
+      resolvedDownloadUrl = data.downloadUrl || '';
+      resolvedMovUrl = data.movUrl || '';
     }
 
 
@@ -286,10 +306,13 @@
       if (error) {
         currentOutput = '';
         resolvedMp4Url = '';
+        resolvedDownloadUrl = '';
+        resolvedMovUrl = '';
         outputEl.textContent = 'No output yet.';
         setStatus(error, 'error');
         copyBtn.disabled = true;
         openBtn.disabled = true;
+        downloadBtn.disabled = true;
         return;
       }
 
@@ -300,14 +323,19 @@
         if (!fallbackUrl) {
           currentOutput = '';
           resolvedMp4Url = '';
+          resolvedDownloadUrl = '';
+          resolvedMovUrl = '';
           outputEl.textContent = 'No output yet.';
           setStatus(err.message, 'error');
           copyBtn.disabled = true;
           openBtn.disabled = true;
+          downloadBtn.disabled = true;
           return;
         }
 
         resolvedMp4Url = fallbackUrl;
+        resolvedDownloadUrl = `${fallbackUrl}${fallbackUrl.includes('?') ? '&' : '?'}download=1`;
+        resolvedMovUrl = '';
         setStatus(`Using local fallback URL (resolver error: ${err.message})`, 'ok');
       }
 
@@ -318,6 +346,7 @@
       setStatus('✓ MP4 URL is ready.', 'ok');
       copyBtn.disabled = false;
       openBtn.disabled = false;
+      downloadBtn.disabled = false;
     }
 
     async function copyCurrentUrl() {
@@ -340,6 +369,12 @@
       window.open(currentOutput, '_blank', 'noopener,noreferrer');
     }
 
+    function downloadVideo() {
+      const url = resolvedDownloadUrl || (resolvedMp4Url ? `${resolvedMp4Url}${resolvedMp4Url.includes('?') ? '&' : '?'}download=1` : '');
+      if (!url) return;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
     inputEl.addEventListener('input', render);
     chipEls.forEach((chip) => {
       chip.addEventListener('click', () => {
@@ -350,6 +385,7 @@
 
     copyBtn.addEventListener('click', copyCurrentUrl);
     openBtn.addEventListener('click', openCurrentUrl);
+    downloadBtn.addEventListener('click', downloadVideo);
 
     render();
   </script>
