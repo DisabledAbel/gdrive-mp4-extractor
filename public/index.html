@@ -219,6 +219,13 @@
     let resolvedCdnUrl = '';
     let resolveCounter = 0;
 
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('ok', 'error');
+      if (type) statusEl.classList.add(type);
+    }
+
     function getRawInput() {
       const value = inputEl.value.trim();
       if (!value) {
