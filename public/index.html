@@ -213,33 +213,13 @@
     let resolvedMp4Url = '';
     let resolveCounter = 0;
 
-    const patterns = [
-      /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/i,
-      /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]{10,})/i,
-      /drive\.google\.com\/uc\?(?:[^\s#]*&)?id=([a-zA-Z0-9_-]{10,})/i,
-      /[?&]id=([a-zA-Z0-9_-]{10,})/i,
-      /^([a-zA-Z0-9_-]{10,})$/
-    ];
-
-    function setStatus(message, type = '') {
-      statusEl.textContent = message;
-      statusEl.className = `status${type ? ` ${type}` : ''}`;
-    }
-
-    function extractFileId(raw) {
-      const value = raw.trim();
+    function getRawInput() {
+      const value = inputEl.value.trim();
       if (!value) {
         return { error: 'Please paste a Google Drive URL or file ID.' };
       }
 
-      for (const pattern of patterns) {
-        const match = value.match(pattern);
-        if (match && match[1]) {
-          return { fileId: match[1] };
-        }
-      }
-
-      return { error: 'Could not find a valid Google Drive file ID in that input.' };
+      return { input: value };
     }
 
     function buildLinks() {
@@ -252,22 +232,41 @@
       };
     }
 
-    async function resolveMp4Url(fileId) {
+    async function resolveMp4Url(rawInput) {
       const nextCounter = resolveCounter + 1;
       resolveCounter = nextCounter;
       setStatus('Checking Drive link and preparing MP4 URL...');
 
-      const query = encodeURIComponent(fileId);
+      const query = encodeURIComponent(rawInput);
       const response = await fetch(`/api/resolve?input=${query}`);
       const data = await response.json();
 
       if (resolveCounter !== nextCounter) return;
 
       if (!response.ok) {
-        throw new Error(data.error || 'Could not resolve this Drive URL.');
+        throw new Error(data.detail || data.error || 'Could not resolve this Drive URL.');
       }
 
       resolvedMp4Url = data.mp4Url || '';
+    }
+
+
+    function fallbackResolveLocally(rawInput) {
+      const value = String(rawInput || '').trim();
+      const idMatch = value.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/i)
+        || value.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]{10,})/i)
+        || value.match(/[?&]id=([a-zA-Z0-9_-]{10,})/i)
+        || value.match(/^([a-zA-Z0-9_-]{10,})$/i);
+      if (!idMatch?.[1]) return '';
+
+      const fileId = idMatch[1];
+      const rkMatch = value.match(/[?&](?:resourcekey|rk)=([a-zA-Z0-9_-]+)/i);
+
+      let url = `${window.location.origin}/mp4/${encodeURIComponent(fileId)}.mp4`;
+      if (rkMatch?.[1]) {
+        url += `?rk=${encodeURIComponent(rkMatch[1])}`;
+      }
+      return url;
     }
 
     function updateActiveChip(nextFormat) {
@@ -280,7 +279,7 @@
     }
 
     async function render() {
-      const { fileId, error } = extractFileId(inputEl.value);
+      const { input, error } = getRawInput();
 
       hintEl.textContent = hintsByFormat[selectedFormat];
 
@@ -295,15 +294,21 @@
       }
 
       try {
-        await resolveMp4Url(fileId);
+        await resolveMp4Url(input);
       } catch (err) {
-        currentOutput = '';
-        resolvedMp4Url = '';
-        outputEl.textContent = 'No output yet.';
-        setStatus(err.message, 'error');
-        copyBtn.disabled = true;
-        openBtn.disabled = true;
-        return;
+        const fallbackUrl = fallbackResolveLocally(input);
+        if (!fallbackUrl) {
+          currentOutput = '';
+          resolvedMp4Url = '';
+          outputEl.textContent = 'No output yet.';
+          setStatus(err.message, 'error');
+          copyBtn.disabled = true;
+          openBtn.disabled = true;
+          return;
+        }
+
+        resolvedMp4Url = fallbackUrl;
+        setStatus(`Using local fallback URL (resolver error: ${err.message})`, 'ok');
       }
 
       const links = buildLinks();
