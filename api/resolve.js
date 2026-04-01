@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
     }
 
     const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host;
+    const host = req.headers.host || 'localhost';
     const mp4Url = new URL(`${protocol}://${host}/mp4/${fileId}.mp4`);
     if (resourceKey) mp4Url.searchParams.set('rk', resourceKey);
 
