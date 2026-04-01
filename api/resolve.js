@@ -1,19 +1,5 @@
 const { extractDriveParams } = require('../lib/drive');
 
-function getPublicOrigin(req) {
-  const rawProtocol = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim().toLowerCase();
-  const protocol = rawProtocol === 'http' ? 'http' : 'https';
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
-  if (!host) throw new Error('Missing host header for URL generation.');
-  return `${protocol}://${host}`;
-}
-
-function appendQuery(url, key, value) {
-  if (!value) return url;
-  const joiner = url.includes('?') ? '&' : '?';
-  return `${url}${joiner}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-}
-
 module.exports = async function handler(req, res) {
   try {
     const input = req.query.input || req.query.url || req.body?.input || req.body?.url;
@@ -24,22 +10,15 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const origin = getPublicOrigin(req);
-    const safeFileId = encodeURIComponent(fileId);
-
-    let mp4Url = `${origin}/mp4/${safeFileId}.mp4`;
-    let m3uUrl = `${origin}/m3u/${safeFileId}.m3u8`;
-
-    if (resourceKey) {
-      mp4Url = appendQuery(mp4Url, 'rk', resourceKey);
-      m3uUrl = appendQuery(m3uUrl, 'rk', resourceKey);
-    }
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const mp4Url = new URL(`${protocol}://${host}/mp4/${fileId}.mp4`);
+    if (resourceKey) mp4Url.searchParams.set('rk', resourceKey);
 
     res.status(200).json({
       fileId,
       resourceKey,
-      mp4Url,
-      m3uUrl
+      mp4Url: mp4Url.toString()
     });
   } catch (error) {
     res.status(502).json({
