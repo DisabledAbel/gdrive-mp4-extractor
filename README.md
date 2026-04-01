@@ -1,9 +1,6 @@
 # gdrive-mp4-extractor
 
 Turn Google Drive share links into direct MP4 URLs for VLC, Infuse, and nPlayer — no backend, no installs, just open and go.
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/DisabledAbel/gdrive-mp4-extractor)
-
 ---
 
 ## What it does
