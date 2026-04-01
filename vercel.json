@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/mp4/:fileId.mp4",
+      "destination": "/api/mp4/:fileId"
+    }
+  ]
+}
