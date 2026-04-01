@@ -216,6 +216,7 @@
     let currentOutput = '';
     let resolvedMp4Url = '';
     let resolvedDownloadUrl = '';
+    let resolvedCdnUrl = '';
     let resolveCounter = 0;
 
     function getRawInput() {
@@ -228,7 +229,7 @@
     }
 
     function buildLinks() {
-      const hostedMp4 = resolvedMp4Url;
+      const hostedMp4 = resolvedCdnUrl || resolvedMp4Url;
       return {
         vlcWeb: hostedMp4,
         vlcDeep: `vlc://${hostedMp4}`,
@@ -255,6 +256,7 @@
 
       resolvedMp4Url = data.mp4Url || '';
       resolvedDownloadUrl = data.downloadUrl || '';
+      resolvedCdnUrl = data.cdnUrl || '';
     }
 
 
@@ -294,6 +296,7 @@
         currentOutput = '';
         resolvedMp4Url = '';
         resolvedDownloadUrl = '';
+        resolvedCdnUrl = '';
         outputEl.textContent = 'No output yet.';
         setStatus(error, 'error');
         copyBtn.disabled = true;
@@ -310,6 +313,7 @@
           currentOutput = '';
           resolvedMp4Url = '';
           resolvedDownloadUrl = '';
+          resolvedCdnUrl = '';
           outputEl.textContent = 'No output yet.';
           setStatus(err.message, 'error');
           copyBtn.disabled = true;
@@ -320,6 +324,7 @@
 
         resolvedMp4Url = fallbackUrl;
         resolvedDownloadUrl = `${fallbackUrl}${fallbackUrl.includes('?') ? '&' : '?'}download=1`;
+        resolvedCdnUrl = '';
         setStatus(`Using local fallback URL (resolver error: ${err.message})`, 'ok');
       }
 
