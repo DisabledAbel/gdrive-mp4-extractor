@@ -1,4 +1,4 @@
-const { extractDriveParams, resolveDriveDownloadUrl } = require('../lib/drive');
+const { extractDriveParams } = require('../lib/drive');
 
 module.exports = async function handler(req, res) {
   try {
@@ -17,21 +17,19 @@ module.exports = async function handler(req, res) {
 
     const downloadUrl = new URL(mp4Url.toString());
     downloadUrl.searchParams.set('download', '1');
+    const movUrl = new URL(`${protocol}://${host}/mp4/${fileId}.mov`);
+    if (resourceKey) movUrl.searchParams.set('rk', resourceKey);
 
-    let cdnUrl = null;
-    try {
-      const resolved = await resolveDriveDownloadUrl(fileId, { resourceKey });
-      cdnUrl = resolved?.url || null;
-    } catch {
-      cdnUrl = null;
-    }
+    const downloadMovUrl = new URL(movUrl.toString());
+    downloadMovUrl.searchParams.set('download', '1');
 
     res.status(200).json({
       fileId,
       resourceKey,
       mp4Url: mp4Url.toString(),
+      movUrl: movUrl.toString(),
       downloadUrl: downloadUrl.toString(),
-      cdnUrl
+      downloadMovUrl: downloadMovUrl.toString()
     });
   } catch (error) {
     res.status(502).json({
