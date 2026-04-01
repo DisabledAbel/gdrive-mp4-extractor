@@ -1,4 +1,4 @@
-# gdrive-mp4-extractor
+# GDrive MP4 Extractor
 
 A tiny web app that converts a Google Drive share URL (or file ID) into a hosted MP4 endpoint and player-compatible links.
 
