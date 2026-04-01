@@ -19,7 +19,12 @@ app.get('/api/mp4/:fileId', (req, res) => {
 });
 
 app.get('/mp4/:fileId.mp4', (req, res) => {
-  req.query = { ...req.query, fileId: req.params.fileId };
+  req.query = { ...req.query, fileId: req.params.fileId, ext: 'mp4' };
+  mp4Handler(req, res);
+});
+
+app.get('/mp4/:fileId.mov', (req, res) => {
+  req.query = { ...req.query, fileId: req.params.fileId, ext: 'mov' };
   mp4Handler(req, res);
 });
 

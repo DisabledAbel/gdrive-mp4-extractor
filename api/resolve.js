@@ -11,14 +11,25 @@ module.exports = async function handler(req, res) {
     }
 
     const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host;
+    const host = req.headers.host || 'localhost';
     const mp4Url = new URL(`${protocol}://${host}/mp4/${fileId}.mp4`);
     if (resourceKey) mp4Url.searchParams.set('rk', resourceKey);
+
+    const downloadUrl = new URL(mp4Url.toString());
+    downloadUrl.searchParams.set('download', '1');
+    const movUrl = new URL(`${protocol}://${host}/mp4/${fileId}.mov`);
+    if (resourceKey) movUrl.searchParams.set('rk', resourceKey);
+
+    const downloadMovUrl = new URL(movUrl.toString());
+    downloadMovUrl.searchParams.set('download', '1');
 
     res.status(200).json({
       fileId,
       resourceKey,
-      mp4Url: mp4Url.toString()
+      mp4Url: mp4Url.toString(),
+      movUrl: movUrl.toString(),
+      downloadUrl: downloadUrl.toString(),
+      downloadMovUrl: downloadMovUrl.toString()
     });
   } catch (error) {
     res.status(502).json({

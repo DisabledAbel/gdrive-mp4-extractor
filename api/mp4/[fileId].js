@@ -13,6 +13,9 @@ module.exports = async function handler(req, res) {
     }
 
     const driveResponse = await fetchDriveStream(fileId, { resourceKey });
+    const ext = String(req.query.ext || (String(rawId).toLowerCase().endsWith('.mov') ? 'mov' : 'mp4')).toLowerCase() === 'mov' ? 'mov' : 'mp4';
+    const forceDownload = String(req.query.download || req.query.dl || '').toLowerCase() === '1'
+      || String(req.query.download || req.query.dl || '').toLowerCase() === 'true';
     const upstreamContentType = driveResponse.headers.get('content-type') || 'video/mp4';
     const upstreamLength = driveResponse.headers.get('content-length');
     const upstreamDisposition = driveResponse.headers.get('content-disposition') || '';
@@ -22,11 +25,13 @@ module.exports = async function handler(req, res) {
     const fileName = sanitizeFileName(decodeURIComponent(matchedName?.[1] || matchedName?.[2] || fileId));
 
     res.statusCode = driveResponse.status;
-    res.setHeader('Content-Type', upstreamContentType.includes('video') ? upstreamContentType : 'video/mp4');
+    const fallbackType = ext === 'mov' ? 'video/quicktime' : 'video/mp4';
+    res.setHeader('Content-Type', upstreamContentType.includes('video') ? upstreamContentType : fallbackType);
     if (upstreamLength) res.setHeader('Content-Length', upstreamLength);
     if (upstreamAcceptRanges) res.setHeader('Accept-Ranges', upstreamAcceptRanges);
     if (upstreamContentRange) res.setHeader('Content-Range', upstreamContentRange);
-    res.setHeader('Content-Disposition', `inline; filename="${fileName.endsWith('.mp4') ? fileName : `${fileName}.mp4`}"`);
+    const finalName = fileName.endsWith(`.${ext}`) ? fileName : `${fileName.replace(/\.(mp4|mov)$/i, '')}.${ext}`;
+    res.setHeader('Content-Disposition', `${forceDownload ? 'attachment' : 'inline'}; filename="${finalName}"`);
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
     Readable.fromWeb(driveResponse.body).pipe(res);
