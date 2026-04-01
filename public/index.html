@@ -211,6 +211,7 @@
     let selectedFormat = 'vlcWeb';
     let currentOutput = '';
     let resolvedMp4Url = '';
+    let resolveWarning = '';
     let resolveCounter = 0;
 
     const patterns = [
@@ -242,8 +243,8 @@
       return { error: 'Could not find a valid Google Drive file ID in that input.' };
     }
 
-    function buildLinks(fileId) {
-      const base = `https://drive.google.com/file/d/${fileId}/view.mp4`;
+    function buildLinks() {
+      const hostedMp4 = resolvedMp4Url;
       return {
         vlcWeb: hostedMp4,
         vlcDeep: `vlc://${hostedMp4}`,
@@ -268,6 +269,7 @@
       }
 
       resolvedMp4Url = data.mp4Url || '';
+      resolveWarning = data.warning || '';
     }
 
     function updateActiveChip(nextFormat) {
@@ -287,6 +289,7 @@
       if (error) {
         currentOutput = '';
         resolvedMp4Url = '';
+        resolveWarning = '';
         outputEl.textContent = 'No output yet.';
         setStatus(error, 'error');
         copyBtn.disabled = true;
@@ -299,6 +302,7 @@
       } catch (err) {
         currentOutput = '';
         resolvedMp4Url = '';
+        resolveWarning = '';
         outputEl.textContent = 'No output yet.';
         setStatus(err.message, 'error');
         copyBtn.disabled = true;
@@ -310,7 +314,7 @@
       currentOutput = links[selectedFormat] || '';
 
       outputEl.textContent = currentOutput;
-      setStatus('✓ MP4 URL is ready.', 'ok');
+      setStatus(resolveWarning ? `⚠ ${resolveWarning}` : '✓ MP4 URL is ready.', resolveWarning ? 'error' : 'ok');
       copyBtn.disabled = false;
       openBtn.disabled = false;
     }

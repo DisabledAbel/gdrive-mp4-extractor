@@ -10,17 +10,26 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const probeResponse = await fetchDriveStream(fileId, { rangeProbe: true });
-    probeResponse.body.cancel();
-
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host;
     const mp4Url = `${protocol}://${host}/mp4/${fileId}.mp4`;
 
+    let contentType = null;
+    let warning = null;
+
+    try {
+      const probeResponse = await fetchDriveStream(fileId, { rangeProbe: true });
+      contentType = probeResponse.headers.get('content-type') || null;
+      probeResponse.body?.cancel();
+    } catch (probeError) {
+      warning = `Validation probe failed, but a hosted URL was still generated: ${probeError.message}`;
+    }
+
     res.status(200).json({
       fileId,
       mp4Url,
-      contentType: probeResponse.headers.get('content-type') || null
+      contentType,
+      warning
     });
   } catch (error) {
     res.status(502).json({
