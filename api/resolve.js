@@ -6,7 +6,12 @@ module.exports = async function handler(req, res) {
     const { fileId, resourceKey } = extractDriveParams(input);
 
     if (!fileId) {
-      res.status(400).json({ error: 'Please provide a valid Google Drive URL or file ID.' });
+      const isFolderLike = /drive\.google\.com\/drive\/(?:folders\/|my-drive(?:\/|$)|shared-with-me(?:\/|$))/i.test(String(input || ''));
+      res.status(400).json({
+        error: isFolderLike
+          ? 'This is a Google Drive folder/location URL. Please provide a file URL (…/file/d/FILE_ID/...).'
+          : 'Unrecognized input. Please provide a Google Drive file URL or raw file ID.'
+      });
       return;
     }
 

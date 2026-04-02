@@ -39,6 +39,9 @@ No setup needed — it's already deployed and ready to use.
 https://drive.google.com/file/d/FILE_ID/view?usp=sharing
 https://drive.google.com/file/d/FILE_ID/view
 https://drive.google.com/open?id=FILE_ID
+https://drive.google.com/uc?export=download&id=FILE_ID
+https://docs.google.com/uc?export=download&id=FILE_ID
+FILE_ID
 ```
 
 ---
