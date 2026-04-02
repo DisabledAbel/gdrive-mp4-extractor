@@ -290,23 +290,6 @@
         .replace(/\/drive\/u\/\d+\//i, '/drive/')
         .replace(/\/a\/[^/]+\//i, '/');
 
-      if (/drive\.google\.com\/drive\/(?:folders\/|my-drive(?:\/|$)|shared-with-me(?:\/|$))/i.test(normalized)) {
-        return null;
-      }
-
-      const viewerMatch = normalized.match(/docs\.google\.com\/viewer\?(?:[^\s#]*&)?url=([^&#]+)/i);
-      if (viewerMatch?.[1]) {
-        const nestedInput = (() => {
-          try {
-            return decodeURIComponent(viewerMatch[1]);
-          } catch {
-            return viewerMatch[1];
-          }
-        })();
-        const nestedFileId = extractFileId(nestedInput);
-        if (nestedFileId) return nestedFileId;
-      }
-
       const patterns = [
         /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})(?:\/|$)/i,
         /drive\.google\.com\/drive\/file\/d\/([a-zA-Z0-9_-]{10,})(?:\/|$)/i,
@@ -329,17 +312,10 @@
 
     function fallbackResolveLocally(rawInput) {
       const value = String(rawInput || '').trim();
-      const decodedValue = (() => {
-        try {
-          return decodeURIComponent(value);
-        } catch {
-          return value;
-        }
-      })();
       const fileId = extractFileId(value);
       if (!fileId) return '';
 
-      const rkMatch = decodedValue.match(/[?&](?:resourcekey|rk)=([a-zA-Z0-9_-]+)/i);
+      const rkMatch = value.match(/[?&](?:resourcekey|rk)=([a-zA-Z0-9_-]+)/i);
 
       let url = `${window.location.origin}/mp4/${encodeURIComponent(fileId)}.mp4`;
       if (rkMatch?.[1]) {
