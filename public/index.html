@@ -271,15 +271,50 @@
     }
 
 
+    function extractFileId(input) {
+      const rawValue = String(input || '').trim();
+      if (!rawValue) return null;
+
+      const value = (() => {
+        try {
+          return decodeURIComponent(rawValue);
+        } catch {
+          return rawValue;
+        }
+      })();
+
+      const bareId = value.match(/^([a-zA-Z0-9_-]{28,44})$/);
+      if (bareId?.[1]) return bareId[1];
+
+      const normalized = value
+        .replace(/\/drive\/u\/\d+\//i, '/drive/')
+        .replace(/\/a\/[^/]+\//i, '/');
+
+      const patterns = [
+        /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})(?:\/|$)/i,
+        /drive\.google\.com\/drive\/file\/d\/([a-zA-Z0-9_-]{10,})(?:\/|$)/i,
+        /drive\.google\.com\/open\?(?:[^\s#]*&)?id=([a-zA-Z0-9_-]{10,})/i,
+        /drive\.google\.com\/uc\?(?:[^\s#]*&)?id=([a-zA-Z0-9_-]{10,})/i,
+        /docs\.google\.com\/uc\?(?:[^\s#]*&)?id=([a-zA-Z0-9_-]{10,})/i,
+        /drive\.google\.com\/thumbnail\?(?:[^\s#]*&)?id=([a-zA-Z0-9_-]{10,})/i,
+        /lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]{10,})(?:=s\d+)?(?:[/?#]|$)/i,
+        /www\.googleapis\.com\/drive\/v(?:2|3)\/files\/([a-zA-Z0-9_-]{10,})(?:[/?#]|$)/i,
+        /[?&](?:id|file_id)=([a-zA-Z0-9_-]{10,})/i
+      ];
+
+      for (const pattern of patterns) {
+        const match = normalized.match(pattern);
+        if (match?.[1]) return match[1];
+      }
+
+      return null;
+    }
+
     function fallbackResolveLocally(rawInput) {
       const value = String(rawInput || '').trim();
-      const idMatch = value.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/i)
-        || value.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]{10,})/i)
-        || value.match(/[?&]id=([a-zA-Z0-9_-]{10,})/i)
-        || value.match(/^([a-zA-Z0-9_-]{10,})$/i);
-      if (!idMatch?.[1]) return '';
+      const fileId = extractFileId(value);
+      if (!fileId) return '';
 
-      const fileId = idMatch[1];
       const rkMatch = value.match(/[?&](?:resourcekey|rk)=([a-zA-Z0-9_-]+)/i);
 
       let url = `${window.location.origin}/mp4/${encodeURIComponent(fileId)}.mp4`;
@@ -326,7 +361,7 @@
           resolvedDownloadUrl = '';
           resolvedMovUrl = '';
           outputEl.textContent = 'No output yet.';
-          setStatus(err.message, 'error');
+          setStatus('Could not extract a Google Drive file ID from that input. Please paste a valid Drive URL or raw file ID.', 'error');
           copyBtn.disabled = true;
           openBtn.disabled = true;
           downloadBtn.disabled = true;
