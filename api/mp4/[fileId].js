@@ -12,7 +12,16 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const driveResponse = await fetchDriveStream(fileId, { resourceKey });
+    const upstreamHeaders = {};
+    if (req.headers.range) upstreamHeaders.range = req.headers.range;
+    if (req.headers['if-range']) upstreamHeaders['if-range'] = req.headers['if-range'];
+    if (req.headers['if-none-match']) upstreamHeaders['if-none-match'] = req.headers['if-none-match'];
+    if (req.headers['if-modified-since']) upstreamHeaders['if-modified-since'] = req.headers['if-modified-since'];
+
+    const driveResponse = await fetchDriveStream(fileId, {
+      resourceKey,
+      headers: upstreamHeaders
+    });
     const ext = String(req.query.ext || (String(rawId).toLowerCase().endsWith('.mov') ? 'mov' : 'mp4')).toLowerCase() === 'mov' ? 'mov' : 'mp4';
     const forceDownload = String(req.query.download || req.query.dl || '').toLowerCase() === '1'
       || String(req.query.download || req.query.dl || '').toLowerCase() === 'true';
@@ -21,6 +30,8 @@ module.exports = async function handler(req, res) {
     const upstreamDisposition = driveResponse.headers.get('content-disposition') || '';
     const upstreamAcceptRanges = driveResponse.headers.get('accept-ranges');
     const upstreamContentRange = driveResponse.headers.get('content-range');
+    const upstreamEtag = driveResponse.headers.get('etag');
+    const upstreamLastModified = driveResponse.headers.get('last-modified');
     const matchedName = upstreamDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
     const fileName = sanitizeFileName(decodeURIComponent(matchedName?.[1] || matchedName?.[2] || fileId));
 
@@ -30,6 +41,8 @@ module.exports = async function handler(req, res) {
     if (upstreamLength) res.setHeader('Content-Length', upstreamLength);
     if (upstreamAcceptRanges) res.setHeader('Accept-Ranges', upstreamAcceptRanges);
     if (upstreamContentRange) res.setHeader('Content-Range', upstreamContentRange);
+    if (upstreamEtag) res.setHeader('ETag', upstreamEtag);
+    if (upstreamLastModified) res.setHeader('Last-Modified', upstreamLastModified);
     const finalName = fileName.endsWith(`.${ext}`) ? fileName : `${fileName.replace(/\.(mp4|mov)$/i, '')}.${ext}`;
     res.setHeader('Content-Disposition', `${forceDownload ? 'attachment' : 'inline'}; filename="${finalName}"`);
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
